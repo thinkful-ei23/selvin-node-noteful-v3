@@ -3,7 +3,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
-const { PORT } = require('./config');
+//const { PORT } = require('./config');
 const { PORT, MONGODB_URI } = require('./config');
 
 const notesRouter = require('./routes/notes');
@@ -61,12 +61,12 @@ app.listen(PORT, function () {
   console.error(err);
 });
 // Listen for incoming connections
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, function () {
-    console.info(`Server listening on ${this.address().port}`);
-  }).on('error', err => {
-    console.error(err);
-  });
-}
+// if (process.env.NODE_ENV !== 'test') {
+//   app.listen(PORT, function () {
+//     console.info(`Server listening on ${this.address().port}`);
+//   }).on('error', err => {
+//     console.error(err);
+//   });
+// }
 
 module.exports = app; // Export for testing
