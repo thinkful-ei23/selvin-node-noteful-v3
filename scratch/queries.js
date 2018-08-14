@@ -3,31 +3,31 @@ const { MONGODB_URI } = require('../config');
 
 const Note = require('../models/note');
 
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    const searchTerm = 'odio.';
-    let filter = {};
+// mongoose.connect(MONGODB_URI)
+//   .then(() => {
+//     const searchTerm = 'odio.';
+//     let filter = {};
 
-    if (searchTerm) {
-      filter = { $or:[
-        {title:  { $regex: searchTerm }}, 
-        {content:{ $regex: searchTerm }}
-      ]};
-    }
-  return Note.find(filter).sort({_id: 'asc'});
-  })
+//     if (searchTerm) {
+//       filter = { $or:[
+//         {title:  { $regex: searchTerm }}, 
+//         {content:{ $regex: searchTerm }}
+//       ]};
+//     }
+//   return Note.find(filter).sort({_id: 'asc'});
+//   })
 
-  .then(results => {
-    console.log(results);
-  })
-  .then(() => {
-    return mongoose.disconnect()
-  })
-  .catch(err => {
-    console.error(`ERROR: ${err.message}`);
-    console.error(err);
-  });
-// //Find note by id using Note.findById
+//   .then(results => {
+//     console.log(results);
+//   })
+//   .then(() => {
+//     return mongoose.disconnect()
+//   })
+//   .catch(err => {
+//     console.error(`ERROR: ${err.message}`);
+//     console.error(err);
+//   });
+//Find note by id using Note.findById
 // mongoose.connect(MONGODB_URI)
 //   .then(() => {
 //     const searchId = '000000000000000000000003';
@@ -47,7 +47,7 @@ mongoose.connect(MONGODB_URI)
 //   console.error(`ERROR: ${err.message}`);
 //   console.error(err);
 // });
-//Create a new note using Note.create
+// Create a new note using Note.create
 // mongoose.connect(MONGODB_URI)
 //   .then(() => {
 //     const title = '24 Carat Cats';
@@ -69,7 +69,7 @@ mongoose.connect(MONGODB_URI)
 //   console.error(err);
 // });
 
-//Update a note by id using Note.findByIdAndUpdate
+// Update a note by id using Note.findByIdAndUpdate
 // mongoose.connect(MONGODB_URI)
 //   .then(() => {
 //     const id = '000000000000000000000006';
@@ -93,22 +93,22 @@ mongoose.connect(MONGODB_URI)
 //   console.error(err);
 // });
 //Delete a note by id using Note.findByIdAndRemove
-// mongoose.connect(MONGODB_URI)
-//   .then(() => {
-//     const id = '5b733a02fdb1402b284e72d3';
-//     let filter = {};
-//     if(id)  {
-//       filter.id = {_id : id};
-//     }
-//     return Note.findByIdAndRemove(filter.id);
-//   })
-// .then(results => {
-//   console.log(results);
-// })
-// .then(() => {
-//   return mongoose.disconnect()
-// })
-// .catch(err => {
-//   console.error(`ERROR: ${err.message}`);
-//   console.error(err);
-// });
+mongoose.connect(MONGODB_URI)
+  .then(() => {
+    const id = '5b733a02fdb1402b284e72d3';
+    let filter = {};
+    if(id)  {
+      filter.id = {_id : id};
+    }
+    return Note.findByIdAndRemove(filter.id);
+  })
+.then(results => {
+  console.log(results);
+})
+.then(() => {
+  return mongoose.disconnect()
+})
+.catch(err => {
+  console.error(`ERROR: ${err.message}`);
+  console.error(err);
+});

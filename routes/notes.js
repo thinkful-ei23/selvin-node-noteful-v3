@@ -133,6 +133,7 @@ router.delete('/:id', (req, res, next) => {
   })
   .catch(err => {
     console.error(`ERROR: ${err.message}`);
+    console.error(`ERROR: ${err.message}`);
     console.error(err);
   });
 });
