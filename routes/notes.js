@@ -2,140 +2,115 @@
 
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
-const { MONGODB_URI } = require('../config');
-
 const Note = require('../models/note');
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
 
-  mongoose.connect(MONGODB_URI)
-  .then(() => {
-    // const searchTerm = 'odio.';
-    // let filter = {};
+  const searchTerm = req.query.searchTerm;
+  let filter = {};
 
-    // if (searchTerm) {
-    //   filter = { $or:[
-    //     {title:  { $regex: searchTerm }}, 
-    //     {content:{ $regex: searchTerm }}
-    //   ]};
-    // }
-  return Note.find().sort({_id: 'asc'});
-  })
-
+  if (searchTerm) {
+    filter = { $or:[
+      {title:  { $regex: searchTerm }}, 
+      {content:{ $regex: searchTerm }}
+    ]};
+  }
+  Note
+  .find(filter)  
+  .sort({_id: 'asc'})
   .then(results => {
-    res.json(results);
-    console.log(results);
+    if (results) {
+      res.json(results);
+    } else{
+      next(); //=>404 handler
+    }
   })
-  .then(() => {
-    return mongoose.disconnect()
-  })
-  .catch(err => {
-    console.error(`ERROR: ${err.message}`);
-    console.error(err);
-  });
-
+  .catch(err => next(err));
 });
 
 /* ========== GET/READ A SINGLE ITEM ========== */
 router.get('/:id', (req, res, next) => {
-
-  console.log('Get a Note');
-  //Find note by id using Note.findById
-  mongoose.connect(MONGODB_URI)
-  .then(() => {
-    const searchId = req.params.id;
-
-    let filter = {};
-    if (searchId) {
-      filter._id  = { _id: searchId };
-    }
-    return Note.findOne(filter);
-  })
-  .then(results => {
-  res.json(results);
-  })
-  .then(() => {
-  return mongoose.disconnect()
-  })
-  .catch(err => {
-  console.error(`ERROR: ${err.message}`);
-  console.error(err);
-  });
+  Note
+    .findById(req.params.id)
+    .then(result => {
+      if (result) {
+        res.json(result); // => Client
+      } else {
+        next(); // => 404 handler
+      }
+    })
+    .catch(err => next(err)); // => Error handler
 });
 
 /* ========== POST/CREATE AN ITEM ========== */
+/* ========== POST/CREATE A NOTE ========== */
 router.post('/', (req, res, next) => {
   const { title, content } = req.body;
-  console.log('Create a Note');
-  mongoose.connect(MONGODB_URI)
-    .then(() => {
-      let filter = {};
-      if(title && content)  {
-        filter = {title: title, content: content};
+
+  /***** Never trust users - validate input *****/
+  if (!title) {
+    const err = new Error('Missing `title` in request body');
+    err.status = 400;
+    return next(err); // => Error handler
+  }
+
+  const newNote = {
+    title: title,
+    content: content
+  };
+
+  Note
+    .create(newNote)
+    .then(result => {
+      if (result) {
+        res.location(`http://${req.originalUrl}/${result.id}`)
+          .status(201)
+          .json(result); // => Client
+      } else {
+        next(); // => 404 handler
       }
-      return Note.create(filter);
     })
-  .then(results => {
-    res.json(results);
-  })
-  .then(() => {
-    return mongoose.disconnect()
-  })
-  .catch(err => {
-    console.error(`ERROR: ${err.message}`);
-    console.error(err);
-  });
+    .catch(err => next(err)); // => Error handler
 });
 
-/* ========== PUT/UPDATE A SINGLE ITEM ========== */
+/* ========== PUT/UPDATE A SINGLE NOTE ========== */
 router.put('/:id', (req, res, next) => {
-  const { id } = req.params;
+  const noteId = req.params.id;
   const { title, content } = req.body;
-    mongoose.connect(MONGODB_URI)
-    .then(() => {
-      let filter = {};
-      if(id && title && content)  {
-        filter.id = {_id : id};
-        filter.titleAndContent = {title: title, content: content};
+
+  /***** Never trust users - validate input *****/
+  if (!title) {
+    const err = new Error('Missing `title` in request body');
+    err.status = 400;
+    return next(err); // => Error handler
+  }
+
+  const updateObj = {
+    title: title,
+    content: content
+  };
+
+  Note
+    .findByIdAndUpdate(noteId, {$set: updateObj}, { new: true })
+    .then(result => {
+      if (result) {
+        res.json(result); // => Client
+      } else {
+        next(); // => 404 handler
       }
-      return Note.findByIdAndUpdate(filter.id, filter.titleAndContent);
     })
-  .then(results => {
-    res.json(results);
-  })
-  .then(() => {
-    return mongoose.disconnect()
-  })
-  .catch(err => {
-    console.error(`ERROR: ${err.message}`);
-    console.error(err);
-  });
+    .catch(err => next(err)); // => Error handler
 });
 
-/* ========== DELETE/REMOVE A SINGLE ITEM ========== */
+/* ========== DELETE/REMOVE A SINGLE NOTE ========== */
 router.delete('/:id', (req, res, next) => {
-  const  { id } = req.params; 
-  console.log('Delete a Note');
-  mongoose.connect(MONGODB_URI)
-  .then(() => {
-    let filter = {};
-    if(id)  {
-      filter.id = {_id : id};
-    }
-    return Note.findByIdAndRemove(filter.id);
-  })
-  .then(results => {
-    res.status(204).end();
-  })
-  .then(() => {
-    return mongoose.disconnect()
-  })
-  .catch(err => {
-    console.error(`ERROR: ${err.message}`);
-    console.error(`ERROR: ${err.message}`);
-    console.error(err);
-  });
+  Note
+    .findByIdAndRemove(req.params.id)
+    .then(() => {
+      // Respond with a 204 status
+      res.sendStatus(204); // => Client
+    })
+    .catch(err => next(err)); // => Error handler
 });
 
 module.exports = router;
