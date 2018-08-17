@@ -22,7 +22,9 @@ describe('Folders API', function() {
   });
 
   beforeEach(function () {
-    return Folder.insertMany(seedFolders);
+    return Folder.insertMany(seedFolders),
+    Folder.createIndexes();
+    //add index
   });
 
   afterEach(function () {
@@ -106,79 +108,76 @@ describe('Folders API', function() {
   });
 
 
-//   describe('PUT /api/folders/:id', function () {
-//     // 1) Call the database **and** the API
-//     // 2) Wait for both promises to resolve using `Promise.all`
-//     it('should update the correct folder with the input data', function () {
-//       const updateObject = {
-//         title : 'This is the New Title',
-//         content : 'This is the new content'
-//       };
-//       let data;
-//       // 1) First, call the database
-//       return Folder.findOne()
-//         .then(_data => {
-//           data = _data;
-//           // 2) then call the API with the ID
-//           return chai.request(app).put(`/api/folders/${data.id}`)
-//             .send(updateObject);
-//         })
-//         // 2) then check API response
-//         .then((res) => {
-//           expect(res).to.have.status(200);
-//           expect(res).to.be.json;
-//           expect(res.body).to.be.an('object');
-//           expect(res.body).to.have.keys('id', 'title', 'content', 'createdAt', 'updatedAt');
-//           // Retrieve the Folder by ID
-//           return Folder.findById(data.id);
-//         })
-//           // then compare database results to API response
-//           expect(res.body.id).to.equal(data.id);
-//           expect(res.body.title).to.equal(data.title);
-//           expect(res.body.content).to.equal(data.content);
-//           expect(new Date(res.body.createdAt)).to.eql(new Date(data.createdAt));
-//           expect(new Date(res.body.updatedAt)).to.eql(new Date(data.updatedAt));
-//         });
+  describe('PUT /api/folders/:id', function () {
+    // 1) Call the database **and** the API
+    // 2) Wait for both promises to resolve using `Promise.all`
+    it('should update the correct folder with the input data', function () {
+      const updateObject = {
+        name : 'This is the New Name'
+      };
+      let data;
+      // 1) First, call the database
+      return Folder.findOne()
+        .then(_data => {
+          data = _data;
+          // 2) then call the API with the ID
+          return chai.request(app).put(`/api/folders/${data.id}`)
+            .send(updateObject);
+        })
+        // 2) then check API response
+        .then((res) => {
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          expect(res.body).to.be.an('object');
+          expect(res.body).to.have.keys('id', 'name', 'createdAt', 'updatedAt');
+          // Retrieve the Folder by ID
+          return Folder.findById(data.id);
+        })
+          // then compare database results to API response
+          expect(res.body.id).to.equal(data.id);
+          expect(res.body.name).to.equal(data.name);
+          expect(new Date(res.body.createdAt)).to.eql(new Date(data.createdAt));
+          expect(new Date(res.body.updatedAt)).to.eql(new Date(data.updatedAt));
+        });
 
-//     it('should should return a 400 if the title is omitted', function () {
-//       const updateObject = {
-//         title : '',
-//         content : 'This is the new content'
-//       };
-//       let data;
-//       // 1) First, call the database
-//       return Folder.findOne()
-//         .then(_data => {
-//           data = _data;
-//           // 2) then call the API with the ID
-//           return chai.request(app).put(`/api/folders/${data.id}`)
-//             .send(updateObject);
-//         })
-//         // 2) then check API response
-//         .then((res) => {
-//           expect(res).to.have.status(400);
-//           expect(res.text).to.equal('{"status":400,"message":"Missing `title` in request body"}');
-//         });
-//     });
-//   });
-//   describe('DELETE /api/folders/:id', function () {
-//     it('should return a 204', function () {
-//       // 1) First, call the database
-//       let data;
-//       return Folder.findOne()
-//         .then(_data => {
-//           data = _data;
-//           // 2) then call the API with the ID
-//           return chai.request(app).delete(`/api/folders/${data.id}`);
-//         })
-//         .then((res) => {
-//           expect(res).to.have.status(204);
-//           return Folder.findById(data.id);
-//         })
-//         .then((res) => {
-//           expect(res).to.be.null;
-//         });
-//     });
-//   })
+    it('should should return a 400 if the name is omitted', function () {
+      const updateObject = {
+        name : ''
+      };
+      let data;
+      // 1) First, call the database
+      return Folder.findOne()
+        .then(_data => {
+          data = _data;
+          // 2) then call the API with the ID
+          return chai.request(app).put(`/api/folders/${data.id}`)
+            .send(updateObject);
+        })
+        // 2) then check API response
+        .then((res) => {
+          expect(res).to.have.status(400);
+          expect(res.text).to.equal('{"status":400,"message":"Missing `name` in request body"}');
+        });
+    });
+  });
+  describe('DELETE /api/folders/:id', function () {
+    it('should return a 204', function () {
+      // 1) First, call the database
+      let data;
+      return Folder.findOne()
+        .then(_data => {
+          data = _data;
+          // 2) then call the API with the ID
+          return chai.request(app).delete(`/api/folders/${data.id}`);
+        })
+        .then((res) => {
+          expect(res).to.have.status(204);
+          return Folder.findById(data.id);
+        })
+        .then((res) => {
+          expect(res).to.be.null;
+        });
+    });
+  })
 
 });
