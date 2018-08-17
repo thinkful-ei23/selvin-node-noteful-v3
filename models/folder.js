@@ -1,8 +1,7 @@
 const mongoose = require('mongoose');
 
 const folderSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  content: String
+  name: { type: String, required: true, unique: true }
 });
 
 // Add `createdAt` and `updatedAt` fields

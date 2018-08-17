@@ -2,23 +2,13 @@
 
 const express = require('express');
 const router = express.Router();
-const Note = require('../models/note');
+const Folder = require('../models/folder');
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
 
-  const searchTerm = req.query.searchTerm;
-  let filter = {};
-
-  if (searchTerm) {
-    filter = { $or:[
-      {title:  { $regex: searchTerm }}, 
-      {content:{ $regex: searchTerm }},
-      {folderId: searchTerm }
-    ]};
-  }
-  Note
-  .find(filter)  
-  .sort({_id: 'asc'})
+  Folder
+  .find()  
+  .sort({name: 'asc'})
   .then(results => {
     if (results) {
       res.json(results);
@@ -31,7 +21,7 @@ router.get('/', (req, res, next) => {
 
 /* ========== GET/READ A SINGLE ITEM ========== */
 router.get('/:id', (req, res, next) => {
-  Note
+  Folder
     .findById(req.params.id)
     .then(result => {
       if (result) {
@@ -44,25 +34,23 @@ router.get('/:id', (req, res, next) => {
 });
 
 /* ========== POST/CREATE AN ITEM ========== */
-/* ========== POST/CREATE A NOTE ========== */
+/* ========== POST/CREATE A folder ========== */
 router.post('/', (req, res, next) => {
-  const { title, content, folderId } = req.body;
+  const { name } = req.body;
 
   /***** Never trust users - validate input *****/
-  if (!title) {
-    const err = new Error('Missing `title` in request body');
+  if (!name) {
+    const err = new Error('Missing `name` in request body');
     err.status = 400;
     return next(err); // => Error handler
   }
 
-  const newNote = {
-    title: title,
-    content: content,
-    folderId: folderId
+  const newfolder = {
+    name: name
   };
 
-  Note
-    .create(newNote)
+  Folder
+    .create(newfolder)
     .then(result => {
       if (result) {
         res.location(`http://${req.originalUrl}/${result.id}`)
@@ -72,28 +60,33 @@ router.post('/', (req, res, next) => {
         next(); // => 404 handler
       }
     })
-    .catch(err => next(err)); // => Error handler
+    .catch(err => {
+        if (err.code === 11000) {
+          err = new Error('The folder name already exists');
+          err.status = 400;
+        }
+        next(err);
+      });
 });
 
-/* ========== PUT/UPDATE A SINGLE NOTE ========== */
+/* ========== PUT/UPDATE A SINGLE folder ========== */
 router.put('/:id', (req, res, next) => {
-  const noteId = req.params.id;
-  const { title, content } = req.body;
+  const folderId = req.params.id;
+  const { name } = req.body;
 
   /***** Never trust users - validate input *****/
-  if (!title) {
-    const err = new Error('Missing `title` in request body');
+  if (!name) {
+    const err = new Error('Missing `name` in request body');
     err.status = 400;
     return next(err); // => Error handler
   }
 
   const updateObj = {
-    title: title,
-    content: content
+    name: name
   };
 
-  Note
-    .findByIdAndUpdate(noteId, {$set: updateObj}, { new: true })
+  Folder
+    .findByIdAndUpdate(folderId, {$set: updateObj}, { new: true })
     .then(result => {
       if (result) {
         res.json(result); // => Client
@@ -101,12 +94,18 @@ router.put('/:id', (req, res, next) => {
         next(); // => 404 handler
       }
     })
-    .catch(err => next(err)); // => Error handler
+    .catch(err => {
+      if (err.code === 11000) {
+        err = new Error('The folder name already exists');
+        err.status = 400;
+      }
+      next(err);
+    });
 });
 
-/* ========== DELETE/REMOVE A SINGLE NOTE ========== */
+/* ========== DELETE/REMOVE A SINGLE folder ========== */
 router.delete('/:id', (req, res, next) => {
-  Note
+  Folder
     .findByIdAndRemove(req.params.id)
     .then(() => {
       // Respond with a 204 status
@@ -115,4 +114,4 @@ router.delete('/:id', (req, res, next) => {
     .catch(err => next(err)); // => Error handler
 });
 
-module.exports = router;'use strict';
+module.exports = router;
