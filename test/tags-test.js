@@ -68,6 +68,7 @@ describe('Tags API', function() {
     });    
     it('should return correct tag when given a valid id', function () {
       let data;
+      let validTags = ['breed', 'domestic', 'hybrid', 'feral'];
       // 1) First, call the database
       return Tag.findOne()
         .then(_data => {
@@ -97,6 +98,7 @@ describe('Tags API', function() {
         'name': 'The Best Cat Tag Yet!',
       };
       let res;
+      let validTags = ['breed', 'domestic', 'hybrid', 'feral'];
       // 1) First, call the API
       return chai.request(app)
         .post('/api/tags')

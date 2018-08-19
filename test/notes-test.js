@@ -60,7 +60,39 @@ describe('Notes API', function() {
             expect(res.body).to.have.length(data.length);
           });
     });
-  });  
+    it('should return correct note when searchTerm = `recession`', function () {
+
+      // 1) Call the database **and** the API
+    // 2) Wait for both promises to resolve using `Promise.all`
+    return Promise.all([
+        Note.find(),
+        chai.request(app).get('/api/notes/?searchTerm=recession')
+      ])
+      // 3) then compare database results to API response
+        .then(([data, res]) => {
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('array');   
+          expect(res.body[0].title).to.contain('recession');
+        });
+  });
+  it('should return correct folder when folderId is provided in query', function () {
+
+    // 1) Call the database **and** the API
+  // 2) Wait for both promises to resolve using `Promise.all`
+  return Promise.all([
+      Note.find(),
+      chai.request(app).get('/api/notes/?folderId=111111111111111111111101')
+    ])
+    // 3) then compare database results to API response
+      .then(([data, res]) => {
+        expect(res).to.have.status(200);
+        expect(res).to.be.json;
+        expect(res.body).to.be.a('array');   
+        expect(res.body[0].folderId).to.eq('111111111111111111111101');
+      });
+});
+});  
   describe('GET /api/notes/:id', function () {
     it('should return correct note', function () {
       let data;
