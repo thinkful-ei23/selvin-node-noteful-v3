@@ -1,15 +1,14 @@
 'use strict';
 
 const express = require('express');
-const Folder = require('../models/folder');
+const router = express.Router();
+const Tag = require('../models/tag');
 const Note = require('../models/note');
 const ObjectId = require('mongoose').Types.ObjectId;
-const router = express.Router();
-
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
 
-  Folder
+  Tag
   .find()  
   .sort({name: 'asc'})
   .then(results => {
@@ -24,24 +23,28 @@ router.get('/', (req, res, next) => {
 
 /* ========== GET/READ A SINGLE ITEM ========== */
 router.get('/:id', (req, res, next) => {
-  if (!ObjectId.isValid(req.params.id)) {
-    const err = new Error('Invalid id');
+  const { id } = req.params;
+  if (!ObjectId.isValid(id)) {
+    const err = new Error('Invalid Tag id');
     err.status = 400;
     return next(err); // => Error handler
   }
-  Folder
-    .findById(req.params.id)
+  Tag
+    .findById(id)
     .then(result => {
       if (result) {
-        res.json(result); // => Client
+        res.json(result).status(200); // => Client
       } else {
-        next(); // => 404 handler
+        err.status = 404;
+        return next(err); // => Error handler
+     // => 404 handler
       }
     })
     .catch(err => next(err)); // => Error handler
 });
 
-/* ========== POST/CREATE A folder ========== */
+/* ========== POST/CREATE AN ITEM ========== */
+/* ========== POST/CREATE A tag ========== */
 router.post('/', (req, res, next) => {
   const { name } = req.body;
 
@@ -52,12 +55,12 @@ router.post('/', (req, res, next) => {
     return next(err); // => Error handler
   }
 
-  const newfolder = {
+  const newtag = {
     name: name
   };
 
-  Folder
-    .create(newfolder)
+  Tag
+    .create(newtag)
     .then(result => {
       if (result) {
         res.location(`http://${req.originalUrl}/${result.id}`)
@@ -69,26 +72,23 @@ router.post('/', (req, res, next) => {
     })
     .catch(err => {
         if (err.code === 11000) {
-          err = new Error('The folder name already exists');
+          err = new Error('The tag name already exists');
           err.status = 400;
         }
         next(err);
       });
 });
 
-/* ========== PUT/UPDATE A SINGLE folder ========== */
+/* ========== PUT/UPDATE A SINGLE tag ========== */
 router.put('/:id', (req, res, next) => {
-  const folderId = req.params.id;
-
+  const tagId = req.params.id;
   const { name } = req.body;
-
-  /***** Never trust users - validate input *****/
-  if (!ObjectId.isValid(folderId)) {
-    const err = new Error('Invalid id');
+  if (!ObjectId.isValid(tagId)) {
+    const err = new Error('Invalid Tag id');
     err.status = 400;
     return next(err); // => Error handler
   }
-
+  /***** Never trust users - validate input *****/
   if (!name) {
     const err = new Error('Missing `name` in request body');
     err.status = 400;
@@ -99,38 +99,37 @@ router.put('/:id', (req, res, next) => {
     name: name
   };
 
-  Folder
-    .findByIdAndUpdate(folderId, {$set: updateObj}, { new: true })
+  Tag
+    .findByIdAndUpdate(tagId, {$set: updateObj}, { new: true })
     .then(result => {
       if (result) {
-        res.json(result); // => Client
+        res.json(result).status(200); // => Client
       } else {
-        next(); // => 404 handler
+        err.status = 404;
+        return next(err); // => Error handler
       }
     })
     .catch(err => {
       if (err.code === 11000) {
-        err = new Error('The folder name already exists');
+        err = new Error('The tag name already exists');
         err.status = 400;
       }
       next(err);
     });
- 
 });
 
-/* ========== DELETE/REMOVE A SINGLE folder ========== */
+/* ========== DELETE/REMOVE A SINGLE tag ========== */
 router.delete('/:id', (req, res, next) => {
-  const folderId = req.params.id;
-
-  if (!ObjectId.isValid(folderId)) {
-    const err = new Error('Invalid id');
+  const { id } = req.params;
+  if (!ObjectId.isValid(id)) {
+    const err = new Error('Invalid Tag id');
     err.status = 400;
     return next(err); // => Error handler
   }
-  Note.updateMany({'folderId': folderId}, {$unset: {'folderId': 1}})
+  Note.updateMany({ $pull: { tags: id }})
     .then(() => {
-      return Folder.findByIdAndRemove(folderId);
-    })
+      return Tag.findByIdAndRemove(id);
+    })  
     .then(() => {
       // Respond with a 204 status
       res.sendStatus(204); // => Client
