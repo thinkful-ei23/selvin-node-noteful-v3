@@ -92,6 +92,28 @@ describe('Notes API', function() {
         expect(res.body[0].folderId).to.eq('111111111111111111111101');
       });
 });
+  it('should return correct note(s) when tagId is provided in query', function () {
+    let validTags = ['breed', 'domestic', 'hybrid', 'feral'];
+    // 1) Call the database **and** the API
+  // 2) Wait for both promises to resolve using `Promise.all`
+  return Promise.all([
+      Note.find(),
+      chai.request(app).get('/api/notes/?tagId=222222222222222222222203')
+    ])
+    // 3) then compare database results to API response
+      .then(([data, res]) => {
+        expect(res).to.have.status(200);
+        expect(res).to.be.json;
+        expect(res.body).to.be.a('array');   
+
+        for (let i = 0; i < res.body.length; i++) {
+          for (let y = 0; y < res.body[i].tags.length; y++) {
+            //console.log(`res.body[i].tags[y].name: ${res.body[i].tags[y].name}`);
+            expect(validTags).to.contain(res.body[i].tags[y].name);
+          }
+        }
+      });
+  });
 });  
   describe('GET /api/notes/:id', function () {
     it('should return correct note', function () {
@@ -119,9 +141,11 @@ describe('Notes API', function() {
           expect(new Date(res.body.createdAt)).to.eql(data.createdAt);
           expect(new Date(res.body.updatedAt)).to.eql(data.updatedAt);
           expect(res.body.tags).to.be.an('array');
-          //for (let i = 0; i < res.tags.length; i++) {
-          //  expect(validTags).to.contain(res.tags[i].name);
-          //}
+          for (let y = 0; y < res.body.tags.length; y++) {
+            //console.log(`res.body.tags[y].name: ${res.body.tags[y].name}`);
+            expect(validTags).to.contain(res.body.tags[y].name);
+          }
+
         });
     });
   })
