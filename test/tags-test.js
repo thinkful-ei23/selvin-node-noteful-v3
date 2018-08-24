@@ -3,28 +3,28 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const mongoose = require('mongoose');
+
 const app = require('../server');
 const { TEST_MONGODB_URI } = require('../config');
+
 const Tag = require('../models/tag');
 const seedTags = require('../db/seed/tags');
 
 const expect = chai.expect;
 chai.use(chaiHttp);
-describe('Tags API', function() {
 
-    // we need each of these hook functions to return a promise
-  // otherwise we'd need to call a `done` callback. `mongoose.connection.db.dropDatabase`,
-  // `Tag.insertMany` and `mongoose.connection.db.dropDatabase` each return a promise,
-  // so we return the value returned by these function calls.
+describe('Noteful API - Tags', function () {
+
   before(function () {
     return mongoose.connect(TEST_MONGODB_URI)
       .then(() => mongoose.connection.db.dropDatabase());
   });
 
   beforeEach(function () {
-    return Tag.insertMany(seedTags),
-    Tag.createIndexes();
-    //add index
+    return Promise.all([
+      Tag.insertMany(seedTags),
+      Tag.createIndexes()
+    ]);
   });
 
   afterEach(function () {
@@ -36,164 +36,246 @@ describe('Tags API', function() {
   });
 
   describe('GET /api/tags', function () {
-    // 1) Call the database **and** the API
-    // 2) Wait for both promises to resolve using `Promise.all`
-    return Promise.all([
+
+    it('should return the correct number of tags', function () {
+      return Promise.all([
         Tag.find(),
         chai.request(app).get('/api/tags')
       ])
-      // 3) then compare database results to API response
         .then(([data, res]) => {
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.a('array');
           expect(res.body).to.have.length(data.length);
         });
-  });  
+    });
+
+    it('should return a list with the correct fields and values', function () {
+      return Promise.all([
+        Tag.find().sort('name'),
+        chai.request(app).get('/api/tags')
+      ])
+        .then(([data, res]) => {
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('array');
+          expect(res.body).to.have.length(data.length);
+          res.body.forEach(function (item, i) {
+            expect(item).to.be.a('object');
+            expect(item).to.have.all.keys('id', 'name', 'createdAt', 'updatedAt');
+            expect(item.id).to.equal(data[i].id);
+            expect(item.name).to.equal(data[i].name);
+
+            expect(new Date(item.createdAt)).to.eql(data[i].createdAt);
+            expect(new Date(item.updatedAt)).to.eql(data[i].updatedAt);
+          });
+        });
+    });
+
+  });
 
   describe('GET /api/tags/:id', function () {
-    it('should respond with a 400 for an invalid Tag Id', function () {
-       // The string "NOT-A-VALID-ID" is 14 bytes which is an invalid Mongo ObjectId
-       // The string "DOESNOTEXIST" is 12 bytes which is a valid Mongo ObjectId
-       return chai.request(app)
-        .get('/api/tags/NOT-A-VALID-ID')
-        .then(function(res) {
-          console.info(`res.status: ${res.status}`);
-          expect(res).to.have.status(400);
-          expect(res).to.be.json;
-          expect(res.body).to.be.an('object');
-          expect(res.body).to.include.keys('message', 'status');
-          expect(res.body.message).to.equal('Invalid Tag id');
-        });    
-    });    
-    it('should return correct tag when given a valid id', function () {
+
+    it('should return correct tags', function () {
       let data;
-      let validTags = ['breed', 'domestic', 'hybrid', 'feral'];
-      // 1) First, call the database
       return Tag.findOne()
         .then(_data => {
           data = _data;
-          // 2) then call the API with the ID
           return chai.request(app).get(`/api/tags/${data.id}`);
         })
         .then((res) => {
           expect(res).to.have.status(200);
           expect(res).to.be.json;
-
           expect(res.body).to.be.an('object');
-          expect(res.body).to.have.keys('id', 'name', 'createdAt', 'updatedAt');
-
-          // 3) then compare database results to API response
+          expect(res.body).to.have.all.keys('id', 'name', 'createdAt', 'updatedAt');
           expect(res.body.id).to.equal(data.id);
           expect(res.body.name).to.equal(data.name);
           expect(new Date(res.body.createdAt)).to.eql(data.createdAt);
           expect(new Date(res.body.updatedAt)).to.eql(data.updatedAt);
         });
     });
-  })
+
+    it('should respond with a 400 for an invalid id', function () {
+      return chai.request(app)
+        .get('/api/tags/NOT-A-VALID-ID')
+        .then(res => {
+          expect(res).to.have.status(400);
+          expect(res.body.message).to.eq('The `id` is not valid');
+        });
+    });
+
+    it('should respond with a 404 for an id that does not exist', function () {
+      // The string "DOESNOTEXIST" is 12 bytes which is a valid Mongo ObjectId
+      return chai.request(app)
+        .get('/api/tags/DOESNOTEXIST')
+        .then(res => {
+          expect(res).to.have.status(404);
+        });
+    });
+
+  });
 
   describe('POST /api/tags', function () {
-    it('should create and return a new tag when provided valid data', function () {
-      const newItem = {
-        'name': 'The Best Cat Tag Yet!',
-      };
-      let res;
-      let validTags = ['breed', 'domestic', 'hybrid', 'feral'];
-      // 1) First, call the API
+
+    it('should create and return a new item when provided valid data', function () {
+      const newItem = { 'name': 'newTag' };
+      let body;
       return chai.request(app)
         .post('/api/tags')
         .send(newItem)
-        .then(function (_res) {
-          res = _res;
+        .then(function (res) {
+          body = res.body;
           expect(res).to.have.status(201);
           expect(res).to.have.header('location');
           expect(res).to.be.json;
-          expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('id', 'name', 'createdAt', 'updatedAt');
-          // 2) then call the database
-          return Tag.findById(res.body.id);
+          expect(body).to.be.a('object');
+          expect(body).to.have.all.keys('id', 'name', 'createdAt', 'updatedAt');
+          return Tag.findById(body.id);
         })
-        // 3) then compare the API response to the database results
         .then(data => {
-          expect(res.body.id).to.equal(data.id);
-          expect(res.body.name).to.equal(data.name);
-          expect(new Date(res.body.createdAt)).to.eql(data.createdAt);
-          expect(new Date(res.body.updatedAt)).to.eql(data.updatedAt);
+          expect(body.id).to.equal(data.id);
+          expect(body.name).to.equal(data.name);
+          expect(new Date(body.createdAt)).to.eql(data.createdAt);
+          expect(new Date(body.updatedAt)).to.eql(data.updatedAt);
+        });
+    });
+
+    it('should return an error when missing "name" field', function () {
+      const newItem = { 'foo': 'bar' };
+
+      return chai.request(app)
+        .post('/api/tags')
+        .send(newItem)
+        .then(res => {
+          expect(res).to.have.status(400);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('object');
+          expect(res.body.message).to.equal('Missing `name` in request body');
+        });
+    });
+
+    it('should return an error when given a duplicate name', function () {
+      return Tag.findOne()
+        .then(data => {
+          const newItem = { 'name': data.name };
+          return chai.request(app)
+            .post('/api/tags')
+            .send(newItem);
+        })
+        .then(res => {
+          expect(res).to.have.status(400);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('object');
+          expect(res.body.message).to.equal('Tag name already exists');
         });
     });
   });
-
 
   describe('PUT /api/tags/:id', function () {
-    // 1) Call the database **and** the API
-    // 2) Wait for both promises to resolve using `Promise.all`
-    it('should update the correct tag with valid input data', function () {
-      const updateObject = {
-        name : 'This is the New Tag Name'
-      };
+
+    it('should update the tag', function () {
+      const updateItem = { 'name': 'Updated Name' };
       let data;
-      // 1) First, call the database
       return Tag.findOne()
         .then(_data => {
           data = _data;
-          // 2) then call the API with the ID
-          return chai.request(app).put(`/api/tags/${data.id}`)
-            .send(updateObject);
+          return chai.request(app)
+            .put(`/api/tags/${data.id}`)
+            .send(updateItem);
         })
-        // 2) then check API response
-        .then((res) => {
+        .then(function (res) {
           expect(res).to.have.status(200);
           expect(res).to.be.json;
-          expect(res.body).to.be.an('object');
-          expect(res.body).to.have.keys('id', 'name', 'createdAt', 'updatedAt');
-          // Retrieve the Tag by ID
-          return Tag.findById(data.id);
-        })
-          // then compare database results to API response
+          expect(res.body).to.be.a('object');
+          expect(res.body).to.have.all.keys('id', 'name', 'createdAt', 'updatedAt');
           expect(res.body.id).to.equal(data.id);
-          expect(res.body.name).to.equal(data.name);
-          expect(new Date(res.body.createdAt)).to.eql(new Date(data.createdAt));
-          expect(new Date(res.body.updatedAt)).to.eql(new Date(data.updatedAt));
+          expect(res.body.name).to.equal(updateItem.name);
+          expect(new Date(res.body.createdAt)).to.eql(data.createdAt);
+          // expect item to have been updated
+          expect(new Date(res.body.updatedAt)).to.greaterThan(data.updatedAt);
         });
+    });
 
-    it('should should return a 400 if the name is omitted', function () {
-      const updateObject = {
-        name : ''
-      };
-      let data;
-      // 1) First, call the database
-      return Tag.findOne()
-        .then(_data => {
-          data = _data;
-          // 2) then call the API with the ID
-          return chai.request(app).put(`/api/tags/${data.id}`)
-            .send(updateObject);
-        })
-        // 2) then check API response
-        .then((res) => {
+    it('should respond with a 400 for an invalid id', function () {
+      const updateItem = { 'name': 'Blah' };
+
+      return chai.request(app)
+        .put('/api/tags/NOT-A-VALID-ID')
+        .send(updateItem)
+        .then(res => {
           expect(res).to.have.status(400);
-          expect(res.text).to.equal('{"status":400,"message":"Missing `name` in request body"}');
+          expect(res.body.message).to.eq('The `id` is not valid');
         });
     });
-  });
-  describe('DELETE /api/tags/:id', function () {
-    it('should return a 204 from the successful DELETE', function () {
-      // 1) First, call the database
+
+    it('should respond with a 404 for an id that does not exist', function () {
+      const updateItem = { 'name': 'Blah' };
+      // The string "DOESNOTEXIST" is 12 bytes which is a valid Mongo ObjectId
+      return chai.request(app)
+        .put('/api/tags/DOESNOTEXIST')
+        .send(updateItem)
+        .then(res => {
+          expect(res).to.have.status(404);
+        });
+    });
+
+    it('should return an error when missing "name" field', function () {
+      const updateItem = {};
       let data;
       return Tag.findOne()
         .then(_data => {
           data = _data;
-          // 2) then call the API with the ID
-          return chai.request(app).delete(`/api/tags/${data.id}`);
+          return chai.request(app)
+            .put(`/api/tags/${data.id}`)
+            .send(updateItem);
         })
-        .then((res) => {
-          expect(res).to.have.status(204);
-          return Tag.findById(data.id);
-        })
-        .then((res) => {
-          expect(res).to.be.null;
+        .then(res => {
+          expect(res).to.have.status(400);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('object');
+          expect(res.body.message).to.equal('Missing `name` in request body');
         });
     });
-  })
+
+    it('should return an error when given a duplicate name', function () {
+      return Tag.find().limit(2)
+        .then(results => {
+          const [item1, item2] = results;
+          item1.name = item2.name;
+          return chai.request(app)
+            .put(`/api/tags/${item1.id}`)
+            .send(item1);
+        })
+        .then(res => {
+          expect(res).to.have.status(400);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('object');
+          expect(res.body.message).to.equal('Tag name already exists');
+        });
+    });
+
+  });
+
+  describe('DELETE /api/tags/:id', function () {
+
+    it('should delete an existing document and respond with 204', function () {
+      let data;
+      return Tag.findOne()
+        .then(_data => {
+          data = _data;
+          return chai.request(app)
+            .delete(`/api/tags/${data.id}`);
+        })
+        .then(function (res) {
+          expect(res).to.have.status(204);
+          expect(res.body).to.be.empty;
+          return Tag.count({ _id: data.id });
+        })
+        .then(count => {
+          expect(count).to.equal(0);
+        });
+    });
+
+  });
 
 });

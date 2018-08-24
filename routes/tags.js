@@ -1,140 +1,147 @@
 'use strict';
 
 const express = require('express');
-const router = express.Router();
+const mongoose = require('mongoose');
+const passport = require('passport');
+
 const Tag = require('../models/tag');
 const Note = require('../models/note');
-const ObjectId = require('mongoose').Types.ObjectId;
+const User = require('../models/user');
+
+const router = express.Router();
+/* ===============USE PASSPORT AUTH JWT ============= */
+router.use('/', passport.authenticate('jwt', { session: false, failWithError: true }));
+
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
+  const userId = req.user.id;
 
-  Tag
-  .find()  
-  .sort({name: 'asc'})
-  .then(results => {
-    if (results) {
+  Tag.find({ userId })
+    .sort('name')
+    .then(results => {
       res.json(results);
-    } else{
-      next(); //=>404 handler
-    }
-  })
-  .catch(err => next(err));
+    })
+    .catch(err => {
+      next(err);
+    });
 });
 
 /* ========== GET/READ A SINGLE ITEM ========== */
 router.get('/:id', (req, res, next) => {
   const { id } = req.params;
-  if (!ObjectId.isValid(id)) {
-    const err = new Error('Invalid Tag id');
+  const userId = req.user.id;
+
+
+  /***** Never trust users - validate input *****/
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const err = new Error('The `id` is not valid');
     err.status = 400;
-    return next(err); // => Error handler
+    return next(err);
   }
-  Tag
-    .findById(id)
+
+  Tag.findOne({ _id: id, userId })
     .then(result => {
       if (result) {
-        res.json(result).status(200); // => Client
+        res.json(result);
       } else {
-        err.status = 404;
-        return next(err); // => Error handler
-     // => 404 handler
+        next();
       }
     })
-    .catch(err => next(err)); // => Error handler
+    .catch(err => {
+      next(err);
+    });
 });
 
 /* ========== POST/CREATE AN ITEM ========== */
-/* ========== POST/CREATE A tag ========== */
 router.post('/', (req, res, next) => {
   const { name } = req.body;
 
+  const newTag = { name };
+
   /***** Never trust users - validate input *****/
   if (!name) {
     const err = new Error('Missing `name` in request body');
     err.status = 400;
-    return next(err); // => Error handler
+    return next(err);
   }
 
-  const newtag = {
-    name: name
-  };
-
-  Tag
-    .create(newtag)
+  Tag.create(newTag)
     .then(result => {
-      if (result) {
-        res.location(`http://${req.originalUrl}/${result.id}`)
-          .status(201)
-          .json(result); // => Client
-      } else {
-        next(); // => 404 handler
-      }
-    })
-    .catch(err => {
-        if (err.code === 11000) {
-          err = new Error('The tag name already exists');
-          err.status = 400;
-        }
-        next(err);
-      });
-});
-
-/* ========== PUT/UPDATE A SINGLE tag ========== */
-router.put('/:id', (req, res, next) => {
-  const tagId = req.params.id;
-  const { name } = req.body;
-  if (!ObjectId.isValid(tagId)) {
-    const err = new Error('Invalid Tag id');
-    err.status = 400;
-    return next(err); // => Error handler
-  }
-  /***** Never trust users - validate input *****/
-  if (!name) {
-    const err = new Error('Missing `name` in request body');
-    err.status = 400;
-    return next(err); // => Error handler
-  }
-
-  const updateObj = {
-    name: name
-  };
-
-  Tag
-    .findByIdAndUpdate(tagId, {$set: updateObj}, { new: true })
-    .then(result => {
-      if (result) {
-        res.json(result).status(200); // => Client
-      } else {
-        err.status = 404;
-        return next(err); // => Error handler
-      }
+      res.location(`${req.originalUrl}/${result.id}`).status(201).json(result);
     })
     .catch(err => {
       if (err.code === 11000) {
-        err = new Error('The tag name already exists');
+        err = new Error('Tag name already exists');
         err.status = 400;
       }
       next(err);
     });
 });
 
-/* ========== DELETE/REMOVE A SINGLE tag ========== */
+/* ========== PUT/UPDATE A SINGLE ITEM ========== */
+router.put('/:id', (req, res, next) => {
+  const { id } = req.params;
+  const { name } = req.body;
+
+  /***** Never trust users - validate input *****/
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const err = new Error('The `id` is not valid');
+    err.status = 400;
+    return next(err);
+  }
+
+  if (!name) {
+    const err = new Error('Missing `name` in request body');
+    err.status = 400;
+    return next(err);
+  }
+
+  const updateTag = { name };
+
+  Tag.findByIdAndUpdate(id, updateTag, { new: true })
+    .then(result => {
+      if (result) {
+        res.json(result);
+      } else {
+        next();
+      }
+    })
+    .catch(err => {
+      if (err.code === 11000) {
+        err = new Error('Tag name already exists');
+        err.status = 400;
+      }
+      next(err);
+    });
+});
+
+/* ========== DELETE/REMOVE A SINGLE ITEM ========== */
 router.delete('/:id', (req, res, next) => {
   const { id } = req.params;
-  if (!ObjectId.isValid(id)) {
-    const err = new Error('Invalid Tag id');
+  const userId = req.user.id;
+
+  /***** Never trust users - validate input *****/
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const err = new Error('The `id` is not valid');
     err.status = 400;
-    return next(err); // => Error handler
+    return next(err);
   }
-  Note.updateMany({ $pull: { tags: id }})
+
+  const tagRemovePromise = Tag.findByIdAndRemove({ _id: id, userId });
+
+  const noteUpdatePromise = Note.updateMany(
+    { tags: id, },
+    { $pull: { tags: id } }
+  );
+
+  Promise.all([tagRemovePromise, noteUpdatePromise])
     .then(() => {
-      return Tag.findByIdAndRemove(id);
-    })  
-    .then(() => {
-      // Respond with a 204 status
-      res.sendStatus(204); // => Client
+      res.status(204).end();
     })
-    .catch(err => next(err)); // => Error handler
+    .catch(err => {
+      next(err);
+    });
+
 });
 
 module.exports = router;

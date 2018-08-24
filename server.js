@@ -1,14 +1,23 @@
 'use strict';
 
+//require('dotenv').config();
+
 const express = require('express');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
-//const { PORT } = require('./config');
+const passport = require('passport');
+const localStrategy = require('./passport/local');
+const jwtStrategy = require('./passport/jwt');
+
 const { PORT, MONGODB_URI } = require('./config');
 
 const notesRouter = require('./routes/notes');
 const foldersRouter = require('./routes/folders');
 const tagsRouter = require('./routes/tags');
+const usersRouter = require('./routes/users');
+const authRouter = require('./routes/auth');
+
+
 // Create an Express application
 const app = express();
 
@@ -23,10 +32,19 @@ app.use(express.static('public'));
 // Parse request body
 app.use(express.json());
 
+// use passport for password
+passport.use(localStrategy);
+passport.use(jwtStrategy);
+
+
 // Mount routers
 app.use('/api/notes', notesRouter);
 app.use('/api/folders', foldersRouter);
 app.use('/api/tags', tagsRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/login', authRouter);
+
+
 // Custom 404 Not Found route handler
 app.use((req, res, next) => {
   const err = new Error('Not Found');
@@ -45,32 +63,23 @@ app.use((err, req, res, next) => {
   }
 });
 
-// Connect to DB and Listen for incoming connections
+// Listen for incoming connections
 if (process.env.NODE_ENV !== 'test') {
+  // Connect to DB and Listen for incoming connections
   mongoose.connect(MONGODB_URI)
     .then(instance => {
       const conn = instance.connections[0];
       console.info(`Connected to: mongodb://${conn.host}:${conn.port}/${conn.name}`);
     })
     .catch(err => {
-      console.error(`ERROR: ${err.message}`);
-      console.error('\n === Did you remember to start `mongod`? === \n');
       console.error(err);
     });
-}
 
-app.listen(PORT, function () {
-  console.info(`Server listening on ${this.address().port}`);
-}).on('error', err => {
-  console.error(err);
-});
-// Listen for incoming connections
-// if (process.env.NODE_ENV !== 'test') {
-//   app.listen(PORT, function () {
-//     console.info(`Server listening on ${this.address().port}`);
-//   }).on('error', err => {
-//     console.error(err);
-//   });
-// }
+  app.listen(PORT, function () {
+    console.info(`Server listening on ${this.address().port}`);
+  }).on('error', err => {
+    console.error(err);
+  });
+}
 
 module.exports = app; // Export for testing
