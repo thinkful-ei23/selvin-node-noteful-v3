@@ -78,7 +78,7 @@ describe('Noteful API - Folders', function () {
 
     it('should return a list with the correct fields and values', function () {
       const dbPromise = Folder.find({ userId: user.id });
-      console.log('token', token);
+      //console.logconsole.log('token', token);
       const apiPromise = chai.request(app)
         .get('/api/folders')
         .set('Authorization', `Bearer ${token}`);
@@ -125,7 +125,7 @@ describe('Noteful API - Folders', function () {
       return dbPromise
         .then(_folder => {
           folder = _folder[0];
-          console.log('folder', folder);
+          //console.log('folder', folder);
           return chai.request(app)
           .get(`/api/folders/${folder.id}`)
           .set('Authorization', `Bearer ${token}`);
@@ -204,6 +204,7 @@ describe('Noteful API - Folders', function () {
         .send(newFolder)
         .then(_res => {
           res = _res;
+          console.log('***********NEW FOLDER res: ', res  );
           expect(res).to.have.status(201);
           expect(res).to.have.header('location');
           expect(res).to.be.json;
@@ -456,7 +457,7 @@ describe('Noteful API - Folders', function () {
         .then(_note => {
          let note = _note;
          //console.log(_note);
-          console.log(`note.userId: ${note.userId}  note.folderId is ${note.folderId} `);
+          //console.log(`note.userId: ${note.userId}  note.folderId is ${note.folderId} `);
           let folderId = note.folderId;
           return chai.request(app)
             .delete(`/api/folders/${folderId}`)

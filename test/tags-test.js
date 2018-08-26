@@ -56,7 +56,6 @@ describe('Noteful API - Tags', function () {
       const apiPromise = chai.request(app)
         .get('/api/tags')
         .set('Authorization', `Bearer ${token}`); 
-
       return Promise.all([dbPromise, apiPromise])
         .then(([data, res]) => {
           expect(res).to.have.status(200);
@@ -69,8 +68,9 @@ describe('Noteful API - Tags', function () {
     it('should return a list with the correct fields and values', function () {
       return Promise.all([
         Tag.find({ userId: user.id }).sort('name'),
-        chai.request(app).get('/api/tags').set('Authorization', `Bearer ${token}`)
-
+        chai.request(app)
+        .get('/api/tags')
+        .set('Authorization', `Bearer ${token}`)
       ])
         .then(([data, res]) => {
           expect(res).to.have.status(200);
@@ -98,7 +98,8 @@ describe('Noteful API - Tags', function () {
       return Tag.findOne()
         .then(_data => {
           data = _data;
-          return chai.request(app).get(`/api/tags/${data.id}`)
+          return chai.request(app)
+          .get(`/api/tags/${data.id}`)
           .set('Authorization', `Bearer ${token}`)
 
           ;
@@ -206,8 +207,8 @@ describe('Noteful API - Tags', function () {
         .then(_data => {
           data = _data;
           return chai.request(app)
-            .put(`/api/tags/${data.id}`).set('Authorization', `Bearer ${token}`)
-
+            .put(`/api/tags/${data.id}`)
+            .set('Authorization', `Bearer ${token}`)
             .send(updateItem);
         })
         .then(function (res) {
@@ -293,18 +294,18 @@ describe('Noteful API - Tags', function () {
   describe('DELETE /api/tags/:id', function () {
 
     it('should delete an existing document and respond with 204', function () {
-      let data;
+      let tag;
       return Tag.findOne()
-        .then(_data => {
-          data = _data;
+        .then(_tag => {
+          tag = _tag;
           return chai.request(app)
-            .delete(`/api/tags/${data.id}`).set('Authorization', `Bearer ${token}`)
-            ;
+            .delete(`/api/tags/${tag.id}`)
+            .set('Authorization', `Bearer ${token}`);
         })
         .then(function (res) {
           expect(res).to.have.status(204);
           expect(res.body).to.be.empty;
-          return Tag.count({ _id: data.id });
+          return Tag.count({ _id: tag.id });
         })
         .then(count => {
           expect(count).to.equal(0);
@@ -315,7 +316,6 @@ describe('Noteful API - Tags', function () {
       return chai.request(app)
         .delete('/api/tags/NOT-A-VALID-ID')
         .set('Authorization', `Bearer ${token}`)
-
         .then(res => {
           expect(res).to.have.status(400);
           expect(res.body.message).to.equal('The `id` is not valid');
