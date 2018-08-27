@@ -149,7 +149,7 @@ describe('Noteful API - Notes', function () {
         });
     });
 
-    it.only('should return correct search results for a tagId query', function () {
+    it('should return correct search results for a tagId query', function () {
       let data;
       return Tag.findOne()
         .then((_data) => {
