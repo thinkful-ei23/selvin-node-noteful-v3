@@ -4,7 +4,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const passport = require('passport');
 
-const Folder = require('../models/folder');
+const Folder = require('../models/folder'); 
 const Note = require('../models/note');
 const User = require('../models/user');
 
