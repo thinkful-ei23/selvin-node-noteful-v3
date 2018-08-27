@@ -32,7 +32,7 @@ router.get('/', (req, res, next) => {
   }
 
   if (tagId) {
-    filter.tagsId = tagId;
+    filter.tags = tagId;
   }
   if (userId) {
     filter.userId = userId;
