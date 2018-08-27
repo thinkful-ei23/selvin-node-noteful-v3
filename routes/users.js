@@ -14,7 +14,7 @@ router.post('/', (req, res, next) => {
 	// validate field and check for missing field
 	const requiredFields = ['username', 'password'];
 	const missingField = requiredFields.find(field => !(field in req.body));
-
+//console.log('Missing field : ', missingField);
 	if (missingField) {
 		const err = new Error(`Missing '${missingField}' in request body`);
 		err.status = 422;
@@ -34,6 +34,20 @@ router.post('/', (req, res, next) => {
 			location: nonStringField
 		});
 	}
+	// validate field and check for non-string field
+
+	const filledFields = ['username', 'password', 'fullname']
+	const emptyField = filledFields.find(
+		field => field in req.body && field === ''
+	);
+	if (emptyField) {
+		return res.status(422).json({
+			code: 422,
+			reason: 'ValidationError',
+			message: `${emptyField} must be provided`,
+			location: emptyField
+		});
+	}
 	// validate field and check for white space (trim password and username) fields
 	const explicityTrimmedFields = ['username', 'password'];
 	const nonTrimmedField = explicityTrimmedFields.find(
@@ -43,7 +57,7 @@ router.post('/', (req, res, next) => {
 		return res.status(422).json({
 			code: 422,
 			reason: 'ValidationError',
-			message: 'Cannot start or end with whitespace',
+			message: `${nonTrimmedField} cannot start or end with whitespace`,
 			location: nonTrimmedField
 		});
 	}

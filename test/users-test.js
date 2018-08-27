@@ -14,9 +14,9 @@ const expect = chai.expect;
 chai.use(chaiHttp);
 
 describe('Noteful API - Users', function () {
-	const username = 'exampleUser';
-	const password = 'examplePass';
-	const fullname = 'Example User';
+	let username = 'exampleUser';
+	let password = 'examplePass';
+	let fullname = 'Example User';
 
 	before(function () {
 		return mongoose.connect(TEST_MONGODB_URI)
@@ -35,7 +35,7 @@ describe('Noteful API - Users', function () {
 		return mongoose.disconnect();
 	});
 
-	describe.skip('/api/users', function () {
+	describe('/api/users', function () {
 		describe('POST', function () {
 			it('Should create a new user', function () {
 				const testUser = { username, password, fullname };
@@ -68,30 +68,169 @@ describe('Noteful API - Users', function () {
 					});
 			});
 			it('Should reject users with missing username', function () {
-				const testUser = { password, fullname };
-				return chai.request(app).post('/api/users').send(testUser)
-					.then(res => {
-
-            /**
-             * CREATE YOUR ASSERTIONS HERE
-             */
-
+        const testUser = { password, fullname };
+        let res;
+        return chai
+          .request(app)
+          .post('/api/users')				
+				  .send(testUser)
+					.then(_res => {
+            res = _res;
+            expect(res).to.have.status(422);
+            expect(res).to.be.json;
+            expect(res.body).to.be.a('object');
+            expect(res.body.message).to.equal("Missing 'username' in request body");
+          
 					});
 			});
 
-      /**
-       * COMPLETE ALL THE FOLLOWING TESTS
-       */
-			it('Should reject users with missing password');
-			it('Should reject users with non-string username');
-			it('Should reject users with non-string password');
-			it('Should reject users with non-trimmed username');
-			it('Should reject users with non-trimmed password');
-			it('Should reject users with empty username');
-			it('Should reject users with password less than 8 characters');
-			it('Should reject users with password greater than 72 characters');
-			it('Should reject users with duplicate username');
-			it('Should trim fullname');
-		});
+
+			it('Should reject users with missing password', function () {
+        const testUser = { username, fullname };
+        let res;
+        return chai
+          .request(app)
+          .post('/api/users')				
+				  .send(testUser)
+					.then(_res => {
+            res = _res;
+            expect(res).to.have.status(422);
+            expect(res).to.be.json;
+            expect(res.body).to.be.a('object');
+            expect(res.body.message).to.equal("Missing 'password' in request body");
+          
+					});
+			});
+
+			it('Should reject users with non-string username', function () {
+        const testUser = { username, password, fullname };
+        testUser.username =true;
+        let res;
+        return chai
+          .request(app)
+          .post('/api/users')				
+				  .send(testUser)
+					.then(_res => {
+            res = _res;
+            expect(res).to.have.status(422);
+            expect(res).to.be.json;
+            expect(res.body).to.be.a('object');
+            expect(res.body.message).to.equal("Incorrect field type: expected string");
+          
+          });
+      });  
+      it('Should reject users with non-string password', function () {
+
+        const testUser = { password, username, fullname };
+        testUser.password = true;
+        let res;
+        return chai
+          .request(app)
+          .post('/api/users')				 
+          .send(testUser)
+          .then(_res => {
+            res = _res;
+            expect(res).to.have.status(422);
+            expect(res).to.be.json;
+            expect(res.body).to.be.a('object');
+            expect(res.body.message).to.equal("Incorrect field type: expected string");
+          
+          });
+      });
+      
+      it('Should reject users with non-trimmed username', function () {
+
+        const testUser = { password, username, fullname };
+        testUser.username = " " + username + " ";
+        let res;
+        return chai
+          .request(app)
+          .post('/api/users')				 
+          .send(testUser)
+          .then(_res => {
+            res = _res;
+            expect(res).to.have.status(422);
+            expect(res).to.be.json;
+            expect(res.body).to.be.a('object');
+            expect(res.body.message).to.equal("username cannot start or end with whitespace");
+          
+          });
+      }); 
+      
+      it('Should reject users with non-trimmed password', function () {
+
+        const testUser = { password, username, fullname };
+        testUser.password = " " + password + " ";
+        let res;
+        return chai
+          .request(app)
+          .post('/api/users')				 
+          .send(testUser)
+          .then(_res => {
+            res = _res;
+            expect(res).to.have.status(422);
+            expect(res).to.be.json;
+            expect(res.body).to.be.a('object');
+            expect(res.body.message).to.equal("password cannot start or end with whitespace");
+          
+          });
+      }); 
+      
+      it('Should reject users with empty username', function () {
+
+        const testUser = { password, username, fullname };
+        testUser.password = '';
+        let res;
+        return chai
+          .request(app)
+          .post('/api/users')				 
+          .send(testUser)
+          .then(_res => {
+            res = _res;
+            expect(res).to.have.status(422);
+            expect(res).to.be.json;
+            expect(res.body).to.be.a('object');
+            expect(res.body.message).to.equal("Must be at least 8 characters long");
+          });
+      }); 
+      
+      it('Should reject users with password less than 8 characters', function () {
+
+        const testUser = { password, username, fullname };
+        testUser.password = 'abc123';
+        let res;
+        return chai
+          .request(app)
+          .post('/api/users')				 
+          .send(testUser)
+          .then(_res => {
+            res = _res;
+            expect(res).to.have.status(422);
+            expect(res).to.be.json;
+            expect(res.body).to.be.a('object');
+            expect(res.body.message).to.equal("Must be at least 8 characters long");
+          });
+			}); 
+
+      it('Should reject users with password greater than 72 characters', function () {
+
+        const testUser = { password, username, fullname };
+        testUser.password = 'abc123iouhfeiuohfgwuiohfuioehfguiohfweuiohfgweuiofghweuiofhweuiofhweuiofhweuiofhweuiofhweuiofhweuiofhfewuiohfweuoihfewuoiehwfuoiwefhuifwehiouwefhuiowefhuiofwehuifewhweifuohwefuiohwefuiohwefuiohewfuiohfweiouhfewuiohfweiouhfwe';
+        let res;
+        return chai
+          .request(app)
+          .post('/api/users')				 
+          .send(testUser)
+          .then(_res => {
+            res = _res;
+            expect(res).to.have.status(422);
+            expect(res).to.be.json;
+            expect(res.body).to.be.a('object');
+            expect(res.body.message).to.equal("Must be at most 72 characters long");
+          });
+      }); 
+
+    });
+			
 	});
 });
