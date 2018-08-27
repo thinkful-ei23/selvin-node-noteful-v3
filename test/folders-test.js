@@ -204,7 +204,7 @@ describe('Noteful API - Folders', function () {
         .send(newFolder)
         .then(_res => {
           res = _res;
-          console.log('***********NEW FOLDER res: ', res  );
+          //console.log('***********NEW FOLDER res: ', res  );
           expect(res).to.have.status(201);
           expect(res).to.have.header('location');
           expect(res).to.be.json;
