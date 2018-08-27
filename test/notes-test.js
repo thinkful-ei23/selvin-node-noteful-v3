@@ -154,7 +154,7 @@ describe('Noteful API - Notes', function () {
       return Tag.findOne()
         .then((_data) => {
           data = _data;
-console.log('*******data: ', data);
+//console.log('*******data: ', data);
           return Promise.all([
             Note.find({tags: data.id}),
             chai.request(app)
@@ -166,7 +166,7 @@ console.log('*******data: ', data);
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.a('array');
-          //console.log(res)
+          ////console.log(res)
           //expect(res.body.tags).to.have.length(data.length);
         });
     });
@@ -207,7 +207,7 @@ console.log('*******data: ', data);
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.an('object');
-          //console.log('res.body: ', res.body);
+          ////console.log('res.body: ', res.body);
           expect(res.body).to.have.all.keys('id', 'userId','title', 'content', 'createdAt', 'updatedAt', 'tags');
           expect(res.body.id).to.equal(data.id);
           expect(res.body.title).to.equal(data.title);

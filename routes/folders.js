@@ -80,7 +80,7 @@ router.post('/', (req, res, next) => {
         err = new Error('Folder name already exists');
         err.status = 400;
       }
-      console.log('**** ERR is: ', err)
+     //console.log('**** ERR is: ', err)
       next(err);
     });
 });
