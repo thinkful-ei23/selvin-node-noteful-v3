@@ -406,23 +406,25 @@ describe('Noteful API - Folders', function () {
         });
     });
 
-    it('should catch errors and respond properly', function () {
-      let folder;
-      let res;
+    it('should return a 500 error', function() {
       sandbox.stub(Folder.schema.options.toObject, 'transform').throws('FakeError');
-      const updateFolder = { name: 'Updated Name' };
-      return Folder.findOne()
-        .then(_folder => {
-          folder = _folder;
-          return chai.request(app).put(`/api/folders/${folder.id}`)
+      const updateData = { name: 'Updated Name' };
+
+      return Folder
+        .findOne({ userId: user.id })
+        .then(function(folder) {
+          updateData.id = folder.id;
+
+          return chai
+            .request(app)
+            .put(`/api/folders/${folder.id}`)
             .set('Authorization', `Bearer ${token}`)
-            .send(updateFolder);
+            .send(updateData);
         })
-        .then(_res => {
-          res =_res;
+        .then(res => {
           expect(res).to.have.status(500);
           expect(res).to.be.json;
-          expect(res.body).to.be.a('object');
+          expect(res.body).to.be.an('object');
           expect(res.body.message).to.equal('Internal Server Error');
         });
     });
