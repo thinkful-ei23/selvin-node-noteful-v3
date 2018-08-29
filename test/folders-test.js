@@ -3,7 +3,6 @@ const chaiHttp = require('chai-http');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const express = require('express');
-const sinon = require('sinon');
 
 const app = require('../server');
 const Folder = require('../models/folder');
@@ -20,7 +19,6 @@ const { TEST_MONGODB_URI, JWT_SECRET } = require('../config');
 
 chai.use(chaiHttp);
 const expect = chai.expect;
-const sandbox = sinon.createSandbox();
 
 describe('Noteful API - Folders', function () {
 
@@ -103,17 +101,6 @@ describe('Noteful API - Folders', function () {
           });
         });
     });
-    it('should catch errors and respond properly', function () {
-      sandbox.stub(Folder.schema.options.toObject, 'transform').throws('FakeError');
-      return chai.request(app).get('/api/folders')
-        .set('Authorization', `Bearer ${token}`)
-        .then(res => {
-          expect(res).to.have.status(500);
-          expect(res).to.be.json;
-          expect(res.body).to.be.a('object');
-          expect(res.body.message).to.equal('Internal Server Error');
-        });
-    });
   });
 
   describe('GET /api/folders/:id', function () {
@@ -125,7 +112,6 @@ describe('Noteful API - Folders', function () {
       return dbPromise
         .then(_folder => {
           folder = _folder[0];
-          //console.log('folder', folder);
           return chai.request(app)
           .get(`/api/folders/${folder.id}`)
           .set('Authorization', `Bearer ${token}`);
@@ -169,24 +155,6 @@ describe('Noteful API - Folders', function () {
         .then(([folder, res]) => {
           expect(res).to.be.json;
           expect(res).to.have.status(404);
-        });
-    });
-
-    it('should catch errors and respond properly', function () {
-      sandbox.stub(Folder.schema.options.toObject, 'transform').throws('FakeError');
-
-      let folder;
-      return Folder.findOne()
-        .then(_folder => {
-          folder = _folder;
-          return chai.request(app).get(`/api/folders/${folder.id}`)
-            .set('Authorization', `Bearer ${token}`);
-        })
-        .then(res => {
-          expect(res).to.have.status(500);
-          expect(res).to.be.json;
-          expect(res.body).to.be.a('object');
-          expect(res.body.message).to.equal('Internal Server Error');
         });
     });
 
@@ -263,22 +231,6 @@ describe('Noteful API - Folders', function () {
         });
     });
 
-    it('should catch errors and respond properly', function () {
-      sandbox.stub(Folder.schema.options.toObject, 'transform').throws('FakeError');
-
-      const newItem = { name: 'newFolder' };
-      return chai.request(app)
-        .post('/api/folders')
-        .set('Authorization', `Bearer ${token}`)
-        .send(newItem)
-        .then(res => {
-          expect(res).to.have.status(500);
-          expect(res).to.be.json;
-          expect(res.body).to.be.a('object');
-          expect(res.body.message).to.equal('Internal Server Error');
-        });
-    });
-
   });
 
   describe('PUT /api/folders/:id', function () {
@@ -297,6 +249,7 @@ describe('Noteful API - Folders', function () {
       })
         .then(_res => {
           res =_res;
+          //console.log('****res: ', res);
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
@@ -405,30 +358,6 @@ describe('Noteful API - Folders', function () {
           expect(res.body.message).to.equal('Folder name already exists');
         });
     });
-
-    it('should return a 500 error', function() {
-      sandbox.stub(Folder.schema.options.toObject, 'transform').throws('FakeError');
-      const updateData = { name: 'Updated Name' };
-
-      return Folder
-        .findOne({ userId: user.id })
-        .then(function(folder) {
-          updateData.id = folder.id;
-
-          return chai
-            .request(app)
-            .put(`/api/folders/${folder.id}`)
-            .set('Authorization', `Bearer ${token}`)
-            .send(updateData);
-        })
-        .then(res => {
-          expect(res).to.have.status(500);
-          expect(res).to.be.json;
-          expect(res.body).to.be.an('object');
-          expect(res.body.message).to.equal('Internal Server Error');
-        });
-    });
-
   });
 
   describe('DELETE /api/folders/:id', function () {
